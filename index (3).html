@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rak Baca — Pembaca Buku</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#dde5e3;--fg:#17302f;--muted:#5b7573;--btn:#17302f;--btnfg:#f1f6f5;--card:#f4f8f7;--line:#b6c7c4}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101c1b;--fg:#e3eeec;--muted:#8fa9a6;--btn:#e3eeec;--btnfg:#101c1b;--card:#182827;--line:#2c4442}}
+:root[data-theme="dark"]{--bg:#101c1b;--fg:#e3eeec;--muted:#8fa9a6;--btn:#e3eeec;--btnfg:#101c1b;--card:#182827;--line:#2c4442}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+h1,.serif{font-family:"Lora",Georgia,"Times New Roman",serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:8px}
+header b{font-family:"Lora",Georgia,serif;font-size:18px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 16px;background:var(--btn);color:var(--btnfg)}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button:focus-visible{outline:3px solid #d9a441;outline-offset:2px}
+button:disabled{opacity:.35;cursor:default}
+label.btn{position:relative;display:inline-block;font:inherit;cursor:pointer;border-radius:10px;padding:9px 16px;background:var(--btn);color:var(--btnfg)}
+#home{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+#drop{width:min(520px,100%);border:2px dashed var(--line);border-radius:18px;padding:40px 24px;text-align:center;background:var(--card);transition:border-color .2s}
+#drop.over{border-color:#d9a441}
+#drop h1{font-size:28px;margin:0 0 8px}
+#drop p{color:var(--muted);margin:0 0 22px;line-height:1.5}
+#drop .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#reader{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;min-height:0}
+#frame{position:relative}
+#scaler{transform-origin:top left;position:absolute;left:0;top:0}
+#book{position:relative;perspective:2600px;transition:transform .9s cubic-bezier(.4,.1,.2,1)}
+.slot,.leaf{position:absolute;top:0;width:var(--pw);height:var(--ph)}
+.leaf{transition:transform .9s cubic-bezier(.4,.1,.2,1);transform-style:preserve-3d;z-index:5}
+.leaf.r{transform-origin:left}.leaf.l{transform-origin:right}
+.leaf.r.flip{transform:rotateY(-180deg)}.leaf.l.flip{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face.back{transform:rotateY(180deg)}
+.page{width:100%;height:100%;background:#fcfbf7;color:#222;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.side-l .page{border-radius:6px 0 0 6px}.side-r .page{border-radius:0 6px 6px 0}
+.side-l .page::after,.side-r .page::after{content:"";position:absolute;top:0;bottom:0;width:38px;pointer-events:none}
+.side-l .page::after{right:0;background:linear-gradient(to left,rgba(0,0,0,.22),transparent)}
+.side-r .page::after{left:0;background:linear-gradient(to right,rgba(0,0,0,.22),transparent)}
+.void{display:none}
+.page.pdf img{width:100%;height:100%;display:block}
+.page .body{position:absolute;left:30px;right:30px;top:28px;bottom:40px;overflow:hidden;font:13px/1.6 "Lora",Georgia,serif;text-align:justify;hyphens:auto}
+.body h1,.body h2,.body h3{line-height:1.25;margin:0 0 .6em}.body h1{font-size:21px}.body h2{font-size:17px}.body h3{font-size:14px}
+.body p{margin:0 0 .7em}.body img{max-width:100%;max-height:260px}.body table{border-collapse:collapse;font-size:11px;width:100%}.body td,.body th{border:1px solid #bbb;padding:2px 4px}
+.num{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:#8a8a80;font-family:"Lora",Georgia,serif}
+.cover{background:linear-gradient(135deg,#24476f,#16293f)!important;color:#f0d9a0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:48px 34px}
+.cover::before{content:"";position:absolute;inset:16px;border:1.5px solid #d9a441;border-radius:3px;opacity:.7}
+.cover::after{content:""!important;position:absolute;left:0;top:0;bottom:0;width:22px!important;background:linear-gradient(to right,rgba(0,0,0,.4),rgba(255,255,255,.08) 60%,transparent)!important}
+.cover h2{font-family:"Lora",Georgia,serif;font-size:27px;line-height:1.25;margin:0 0 14px;word-break:break-word}
+.cover small{color:#b8c8dc;font-size:13px}
+.backc{background:linear-gradient(135deg,#1c3556,#112033)!important}
+#bar{display:flex;align-items:center;gap:14px;padding:14px 12px 16px}
+#bar span{min-width:150px;text-align:center;color:var(--muted);font-size:14px}
+#load{position:fixed;inset:0;background:rgba(10,20,20,.72);color:#fff;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:50;font-size:16px}
+#load i{width:42px;height:42px;border:4px solid #ffffff55;border-top-color:#d9a441;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#book,.leaf{transition-duration:.01s}}
+</style>
+</head>
+<body>
+<header><b>Rak Baca</b><div><button class="ghost" id="again" style="display:none">Buka file lain</button></div></header>
+
+<main id="home">
+  <div id="drop">
+    <h1>Baca dokumenmu seperti buku</h1>
+    <p>Unggah file PDF atau DOCX. Sampul akan terbuka, dan halamannya bisa kamu balik satu per satu.</p>
+    <div class="row">
+      <label class="btn" id="pick" tabindex="0">Pilih file PDF / DOCX<input id="file" type="file" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden"></label>
+      <button class="ghost" id="demo">Coba buku contoh</button>
+    </div>
+    <p style="margin:18px 0 0;font-size:13px">atau seret file ke sini. File tidak dikirim ke mana pun.</p>
+  </div>
+</main>
+
+<section id="reader">
+  <div id="frame"><div id="scaler"><div id="book"></div></div></div>
+  <div id="bar">
+    <button id="prev" aria-label="Halaman sebelumnya">Sebelumnya</button>
+    <span id="lbl"></span>
+    <button id="next" aria-label="Halaman berikutnya">Berikutnya</button>
+  </div>
+</section>
+<div id="load"><i></i><div id="loadtxt">Memuat…</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+const $=s=>document.querySelector(s), book=$('#book');
+let pages=[],i=0,busy=false,PW=360,PH=500,single=false,L=null,R=null,fname='';
+const DEMO='<h1>Selamat datang di Rak Baca</h1><p>Ini adalah buku contoh. Setiap kali kamu mengunggah dokumen DOCX, isinya dipecah menjadi halaman-halaman yang pas di layar dan disusun seperti buku sungguhan.</p><p>Klik tepi halaman, tekan panah kiri dan kanan, atau geser jari untuk membalik halaman.</p><h2>Cara kerja</h2><p>Dokumen dibaca di perangkatmu sendiri. Teks, judul, tabel, dan gambar dipertahankan sebisanya, lalu ditata ulang ke dalam halaman dengan ukuran tetap.</p><p>Untuk PDF, setiap halaman digambar apa adanya sehingga tata letak aslinya tidak berubah.</p><h2>Tips membaca</h2><p>Di layar lebar buku tampil sebagai dua halaman berdampingan. Di ponsel, buku tampil satu halaman penuh agar tetap nyaman dibaca.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p><h2>Selesai</h2><p>Ketika sampai di halaman terakhir, sampul belakang akan menutup buku dengan lembut.</p>';
+
+const mk=(c,h)=>{const d=document.createElement('div');d.className=c;if(h!=null)d.innerHTML=h;return d};
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const load=(on,t)=>{$('#load').style.display=on?'flex':'none';if(t)$('#loadtxt').textContent=t};
+const nap=()=>new Promise(r=>setTimeout(r,0));
+
+function getP(k){const p=pages[k];return p?p.cloneNode(true):mk('page void')}
+function wrap(side,k){const f=mk('face side-'+side);f.append(getP(k));return f}
+function slot(side,k,x){const s=mk('slot side-'+side);s.style.left=x+'px';s.append(getP(k));return s}
+const n=()=>pages.length;
+const bw=()=>single?PW:PW*2;
+function shiftFor(k){if(single)return 0;if(k<0)return -PW/2;if(k>=n()-1)return PW/2;return 0}
+function render(){
+  book.innerHTML='';book.style.transform=`translateX(${shiftFor(i)}px)`;
+  if(single){L=null;R=slot('r',i,0);book.append(R)}
+  else{L=slot('l',i,0);R=slot('r',i+1,PW);book.append(L,R)}
+  label();
+}
+function label(){
+  const c=n()-2;let t;
+  if(i<=(single?0:-1))t='Sampul depan';
+  else if(i>=n()-1)t='Sampul belakang';
+  else t=single?`Halaman ${i} dari ${c}`:`Halaman ${i}–${Math.min(i+1,c)} dari ${c}`;
+  $('#lbl').textContent=t;
+  $('#prev').disabled=i<=(single?0:-1);$('#next').disabled=i>=n()-1;
+}
+function leaf(side,front,back,x){
+  const l=mk('leaf '+side);l.style.left=x+'px';l.append(front,back);
+  back.classList.add('back');book.append(l);void l.offsetWidth;return l;
+}
+function go(dir){
+  if(busy||!n())return;const s=single?1:2,ni=i+dir*s;
+  if(ni<(single?0:-1)||ni>n()-1)return;
+  if(single&&dir<0){i=ni;render();return}
+  busy=true;let lf;
+  if(dir>0){
+    if(single){R.replaceChildren(getP(i+1));lf=leaf('r',wrap('r',i),wrap('l',-9),0)}
+    else{R.replaceChildren(getP(i+3));lf=leaf('r',wrap('r',i+1),wrap('l',i+2),PW)}
+  }else{
+    L.replaceChildren(getP(i-2));lf=leaf('l',wrap('l',i),wrap('r',i-1),0);
+  }
+  book.style.transform=`translateX(${shiftFor(ni)}px)`;
+  lf.classList.add('flip');
+  setTimeout(()=>{i=ni;render();busy=false},930);
+}
+
+function pageNum(p,k){const d=mk('num',String(k));p.append(d)}
+function coverEl(t){const c=mk('page cover','<h2>'+esc(t)+'</h2><small>Buka sampul untuk mulai membaca</small>');return c}
+function assemble(list,t){
+  const inner=list.slice();if(inner.length%2)inner.push(mk('page'));
+  inner.forEach((p,k)=>pageNum(p,k+1));
+  pages=[coverEl(t),...inner,mk('page backc')];
+  single=innerWidth<720;i=single?0:-1;
+  $('#home').style.display='none';$('#reader').style.display='flex';$('#again').style.display='';
+  fit();render();
+}
+function fit(){
+  const w=bw(),s=Math.min((innerWidth-24)/w,(innerHeight-150)/PH,1.7);
+  const f=$('#frame');f.style.width=w*s+'px';f.style.height=PH*s+'px';
+  $('#scaler').style.transform=`scale(${s})`;$('#scaler').style.width=w+'px';
+  book.style.width=w+'px';book.style.height=PH+'px';
+  document.documentElement.style.setProperty('--pw',PW+'px');document.documentElement.style.setProperty('--ph',PH+'px');
+}
+
+async function fromHtml(html,t){
+  PW=360;PH=500;
+  const tmp=mk('', html),nodes=[...tmp.children];
+  const holder=mk('');holder.style.cssText='position:absolute;left:-9999px;top:0;width:360px;height:500px';
+  holder.style.setProperty('--pw','360px');document.body.append(holder);
+  const np=()=>{const p=mk('page'),b=mk('body');p.append(b);holder.append(p);return{p,b}};
+  let cur=np();const list=[];
+  for(const nd of nodes){
+    cur.b.append(nd);
+    if(cur.b.scrollHeight>cur.b.clientHeight+1&&cur.b.children.length>1){
+      cur.b.removeChild(nd);list.push(cur.p);cur=np();cur.b.append(nd);
+    }
+  }
+  list.push(cur.p);
+  holder.remove();
+  if(!list.length)throw new Error('kosong');
+  assemble(list,t);
+}
+async function fromPdf(buf,t){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const mob=innerWidth<720,max=Math.min(pdf.numPages,mob?100:250),list=[];
+  for(let k=1;k<=max;k++){
+    load(true,`Menyiapkan halaman ${k} dari ${max}…`);
+    const pg=await pdf.getPage(k),v1=pg.getViewport({scale:1});
+    if(k===1){PW=360;PH=Math.max(260,Math.min(640,Math.round(360*v1.height/v1.width)))}
+    const vp=pg.getViewport({scale:(PW*(mob?1.5:2))/v1.width}),c=document.createElement('canvas');
+    c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    const img=new Image();img.src=c.toDataURL('image/jpeg',.82);
+    const p=mk('page pdf');p.append(img);list.push(p);await nap();
+  }
+  assemble(list,t);
+}
+
+async function openFile(f){
+  if(!f)return;const name=f.name.replace(/\.[^.]+$/,'');fname=name;
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(!['pdf','docx'].includes(ext)){alert('Format belum didukung. Pilih file .pdf atau .docx.');return}
+  load(true,'Membaca file…');
+  try{
+    const buf=await f.arrayBuffer();
+    if(ext==='pdf')await fromPdf(buf,name);
+    else{const r=await mammoth.convertToHtml({arrayBuffer:buf});await fromHtml(r.value,name)}
+  }catch(e){console.error(e);alert('File tidak bisa dibuka ('+(e&&e.message||e)+'). Pastikan file tidak rusak atau terkunci kata sandi.')}
+  load(false);
+}
+
+$('#file').onchange=e=>{openFile(e.target.files[0]);e.target.value=''};
+$('#demo').onclick=async()=>{load(true,'Menyiapkan buku…');await nap();await fromHtml(DEMO,'Panduan Rak Baca');load(false)};
+$('#again').onclick=()=>{$('#reader').style.display='none';$('#home').style.display='flex';$('#again').style.display='none';pages=[];book.innerHTML=''};
+$('#next').onclick=()=>go(1);$('#prev').onclick=()=>go(-1);
+const dz=$('#drop');
+['dragover','dragenter'].forEach(t=>addEventListener(t,e=>{e.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(t=>addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over')}));
+addEventListener('drop',e=>{if(e.dataTransfer.files[0])openFile(e.dataTransfer.files[0])});
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1)});
+book.addEventListener('click',e=>{if(!n())return;const r=book.getBoundingClientRect(),x=(e.clientX-r.left)/r.width;go(single?(x<.3?-1:1):(x>.5?1:-1))});
+let tx=null;
+book.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+book.addEventListener('touchend',e=>{if(tx==null)return;const d=e.changedTouches[0].clientX-tx;tx=null;if(Math.abs(d)>40){e.preventDefault();go(d<0?1:-1)}});
+addEventListener('resize',()=>{
+  if(!n())return;const s=innerWidth<720;
+  if(s!==single&&!busy){single=s;i=s?Math.max(0,i):(i%2?i:i-1);if(!s&&i<-1)i=-1}
+  fit();if(!busy)render();
+});
+</script>
+</body>
+</html>
